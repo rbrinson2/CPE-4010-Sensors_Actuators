@@ -1,28 +1,45 @@
+
+const int POT_MAX = 1023;
+const int POT_MIN = 0;
+const int FREQ_MAX = 10000;
+const int FREQ_MIN = 60;
+const int PERIOD_60HZ = 16667; // microseconds
+const int PERIOD_10KHZ = 100; // microseconds
+
+const float SLOPE = float(PERIOD_10KHZ - PERIOD_60HZ) / float(POT_MAX);
+
+
 int buzzer=8;// select digital IO pin for the buzzer
+int pot = 0;
 
 void setup() { 
-  pinMode(buzzer,OUTPUT);// set digital IO pin pattern, OUTPUT to be output 
+  Serial.begin(9600);
+  pinMode(buzzer,OUTPUT); // set digital IO pin pattern, OUTPUT to be output 
 } 
+
+
+
 void loop() { 
   unsigned char i,j;//define variable
+  float val = 0;
+  int period = 0;
   while(1) 
   { 
-  
-    for(i=0;i<80;i++)// output a frequency sound
-    { 
-      digitalWrite(buzzer,HIGH);// sound
-      delay(1);//delay1ms 
-      digitalWrite(buzzer,LOW);//not sound
-      delay(1);//ms delay 
-    } 
+    val = analogRead(pot);
+    period = int(SLOPE * val + PERIOD_60HZ);
 
-    
-    for(i=0;i<100;i++)// output a frequency sound
-    { 
+    Serial.print("Period: ");
+    Serial.print(period);
+    Serial.print("us\tAnalogue Value: ");
+    Serial.println(val);
+
+    for (int i = 0; i < period; i++) {
       digitalWrite(buzzer,HIGH);// sound
-      delay(2);//2ms delay 
+      delayMicroseconds(1);
       digitalWrite(buzzer,LOW);//not sound
-      delay(2);//2ms delay 
+      delayMicroseconds(1);
     }
+    
+    
   } 
 } 
