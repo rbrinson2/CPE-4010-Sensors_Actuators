@@ -25,8 +25,6 @@ void loop()// convert number 0 to 9 to corresponding 0-180 degree angle, LED bli
 
   angle = float(potInput) * (180.0 / 1023.0);
   Serial.print("moving servo to ");
-  Serial.print(potInput);
-  Serial.print(" ");
   Serial.print(angle,DEC);
   Serial.println();
 
