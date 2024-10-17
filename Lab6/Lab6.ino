@@ -2,6 +2,7 @@ int servopin=9;// select digital pin 9 for servomotor signal line
 int myangle;// initialize angle variable
 int pulsewidth;// initialize width variable
 int val;
+int potPin = 0;
 
 void servopulse(int servopin,int myangle)// define a servo pulse function
 {
@@ -20,19 +21,13 @@ void setup()
 }
 void loop()// convert number 0 to 9 to corresponding 0-180 degree angle, LED blinks corresponding number of time
 {
-  val=Serial.read();// read serial port value
+  int potInput = analogRead(potPin);
 
-  if(val>='0'&&val<='9')
-  {
-    val=val-'0';// convert characteristic quantity to numerical variable
-    val=val*(180/9);// convert number to angle
-    Serial.print("moving servo to ");
-    Serial.print(val,DEC);
-    Serial.println();
+  potInput *= int(180/potInput);// convert number to angle
+  Serial.print("moving servo to ");
+  Serial.print(potInput,DEC);
+  Serial.println();
 
-    for(int i=0;i<=50;i++) // giving the servo time to rotate to commanded position
-    {
-      servopulse(servopin,val);// use the pulse function
-    }
-  }
+  servopulse(servopin,potInput);// use the pulse function
+  delay(1000);
 }
