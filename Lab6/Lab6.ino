@@ -1,7 +1,7 @@
 int servopin=9;// select digital pin 9 for servomotor signal line
 int myangle;// initialize angle variable
 int pulsewidth;// initialize width variable
-int val;
+int angle;
 int potPin = 0;
 
 void servopulse(int servopin,int myangle)// define a servo pulse function
@@ -23,11 +23,13 @@ void loop()// convert number 0 to 9 to corresponding 0-180 degree angle, LED bli
 {
   int potInput = analogRead(potPin);
 
-  potInput *= int(180/potInput);// convert number to angle
+  angle = float(potInput) * (180.0 / 1023.0);
   Serial.print("moving servo to ");
-  Serial.print(potInput,DEC);
+  Serial.print(potInput);
+  Serial.print(" ");
+  Serial.print(angle,DEC);
   Serial.println();
 
-  servopulse(servopin,potInput);// use the pulse function
-  delay(1000);
+  servopulse(servopin,angle);// use the pulse function
+  delay(100);
 }
