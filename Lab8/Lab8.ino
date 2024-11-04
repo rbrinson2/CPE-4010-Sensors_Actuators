@@ -11,6 +11,14 @@
 
 MPU6050 mpu;
 
+#define Max_Left      47
+#define Left          48
+#define Center_Left   49
+#define Center        50
+#define Center_Right  51
+#define Right         52
+#define Max_Right     53
+
 void setup() 
 {
   Serial.begin(115200);
@@ -29,6 +37,15 @@ void setup()
   // mpu.setAccelOffsetZ();
   
   checkSettings();
+
+  pinMode(Max_Left, OUTPUT);
+  pinMode(Left, OUTPUT);
+  pinMode(Center_Left, OUTPUT);
+  pinMode(Center, OUTPUT);
+  pinMode(Center_Right, OUTPUT);
+  pinMode(Right, OUTPUT);
+  pinMode(Max_Right, OUTPUT);
+  
 }
 
 void checkSettings()
@@ -74,19 +91,45 @@ void loop()
   Vector rawAccel = mpu.readRawAccel();
   Vector normAccel = mpu.readNormalizeAccel();
 
-  Serial.print(" Xraw = ");
-  Serial.print(rawAccel.XAxis);
-  Serial.print(" Yraw = ");
-  Serial.print(rawAccel.YAxis);
-  Serial.print(" Zraw = ");
+  // Serial.print(" Xraw = ");
+  // Serial.print(rawAccel.XAxis);
+  // Serial.print(" Yraw = ");
+  // Serial.print(rawAccel.YAxis);
+  // Serial.print(" Zraw = ");
+  // Serial.println(rawAccel.ZAxis);
 
-  Serial.println(rawAccel.ZAxis);
+  float xnorm = normAccel.XAxis;
+  float ynorm = normAccel.YAxis;
+  float znorm = normAccel.ZAxis;
+
+  
   Serial.print(" Xnorm = ");
-  Serial.print(normAccel.XAxis);
+  Serial.print(xnorm);
   Serial.print(" Ynorm = ");
-  Serial.print(normAccel.YAxis);
+  Serial.print(ynorm);
   Serial.print(" Znorm = ");
-  Serial.println(normAccel.ZAxis);
+  Serial.println(znorm);
+
+  if (xnorm <= -19.5) digitalWrite(Max_Left, HIGH);
+  else digitalWrite(Max_Left, LOW);
+    
+  if (xnorm > -19.5 && xnorm <= -13) digitalWrite(Left, HIGH); 
+  else digitalWrite(Left, LOW);
+  
+  if (xnorm > -13 && xnorm <= -6.5) digitalWrite(Center_Left, HIGH);
+  else digitalWrite(Center_Left, LOW);
+
+  if (xnorm > -6.5 && xnorm < 6.5) digitalWrite(Center, HIGH);
+  else digitalWrite(Center, LOW);
+  
+  if (xnorm >= 6.5 && xnorm < 13) digitalWrite(Center_Right, HIGH);
+  else digitalWrite(Center_Right, LOW);
+
+  if (xnorm >= 13 && xnorm < 19.5) digitalWrite(Right, HIGH);
+  else digitalWrite(Right, LOW);
+
+  if (xnorm >= 19.5) digitalWrite(Max_Right, HIGH);
+  else digitalWrite(Max_Right, LOW);
   
   delay(10);
 }
