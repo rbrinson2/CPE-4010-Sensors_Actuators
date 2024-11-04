@@ -98,9 +98,16 @@ void loop()
   // Serial.print(" Zraw = ");
   // Serial.println(rawAccel.ZAxis);
 
+  float xraw = rawAccel.XAxis;
+  float yraw = rawAccel.YAxis;
+  float zraw = rawAccel.ZAxis;
+
   float xnorm = normAccel.XAxis;
   float ynorm = normAccel.YAxis;
   float znorm = normAccel.ZAxis;
+
+  float roll = tan(xnorm / znorm);
+  float rollDeg = (roll / (2 * PI)) * 360;
 
   
   Serial.print(" Xnorm = ");
@@ -109,6 +116,9 @@ void loop()
   Serial.print(ynorm);
   Serial.print(" Znorm = ");
   Serial.println(znorm);
+
+  Serial.print("X Roll = ");
+  Serial.println(rollDeg);
 
   if (xnorm <= -19.5) digitalWrite(Max_Left, HIGH);
   else digitalWrite(Max_Left, LOW);
@@ -131,5 +141,5 @@ void loop()
   if (xnorm >= 19.5) digitalWrite(Max_Right, HIGH);
   else digitalWrite(Max_Right, LOW);
   
-  delay(10);
+  delay(1000);
 }
