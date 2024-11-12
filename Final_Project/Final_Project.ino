@@ -1,13 +1,34 @@
 #include "Servo.h"
 #include "dht11.h"
 #include "NewPing.h"
+#include <LiquidCrystal_I2C.h>
 
 // --------------- Pin Definitions -------------- //
+// ---------------- Servo
 #define SERVO_PIN 2
+
+// ---------------- DHT
 #define DHT_PIN   3
 
+// ---------------- Ultrasonic 
+#define TRIGGER_PIN 22
+#define ECHO_PIN 23
+#define MAX_DISTANCE 200
+
 // --------------- Global Variables ------------- //
+// ------------- Servo
 Servo head_servo;
+
+// ------------- DHT
+dht11 DHT;
+int readDHT, temp, humidity;
+
+// ------------- Ultrasonic
+NewPing eyes(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
+float speedOfSound, distance, duration;
+
+// ------------- LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // --------------- Functions -------------------- //
 
@@ -25,15 +46,32 @@ void Turn_Head(int angle){
 
 // ---------------------------------------------- Detect Distance
 int Detect_Distance(){
-  int d = 0;
-  return d;
+
+  readDHT = DHT.read(ECHO_PIN);
+  temp = DHT.temperature;
+  humidity = DHT.humidity;
+
+  speedOfSound = 331.4 + (0.6 * temp) + (0.0124 * humidity);
+
+  duration = eyes.ping_median(10); // 10 interations - returns duration in microseconds
+  duration = duration/1000000; // Convert mircroseconds to seconds
+  distance = (speedOfSound * duration)/2;
+  distance = distance * 100; // meters to centimeters
+
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println("cm");
+
+  return int(distance);
 }
 
 
 
 void loop() {
 
-  
+  Turn_Head(0);
+
+  Detect_Distance();
 
   delay(50);
 
