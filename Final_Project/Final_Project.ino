@@ -1,15 +1,13 @@
 #include "Servo.h"
 #include "dht11.h"
+#include "NewPing.h"
 
+// --------------- Pin Definitions -------------- //
 #define SERVO_PIN 2
-
+#define DHT_PIN   3
 
 // --------------- Global Variables ------------- //
 Servo head_servo;
-
-
-
-
 
 // --------------- Functions -------------------- //
 
@@ -17,6 +15,7 @@ Servo head_servo;
 void setup() {
   Serial.begin(9600);
   head_servo.attach(SERVO_PIN);
+
 }
 
 // ---------------------------------------------- Head Turn
