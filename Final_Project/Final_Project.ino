@@ -29,6 +29,8 @@ float speedOfSound, distance, duration;
 
 // ------------- LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
+int countdown = 60;
+
 
 // --------------- Functions -------------------- //
 
@@ -36,7 +38,14 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 void setup() {
   Serial.begin(9600);
   head_servo.attach(SERVO_PIN);
+  lcd.begin();
+  lcd.backlight();
 
+  
+}
+
+ISR(TIMER5_COMPB_vect){
+  Serial.println("Hello From Interrupt");
 }
 
 // ---------------------------------------------- Head Turn
@@ -65,6 +74,24 @@ int Detect_Distance(){
   return int(distance);
 }
 
+// ---------------------------------------------- Countdown Display
+void firstLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 0;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+void secondLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 1;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+
+void Countdown_Display(){
+  firstLine(0);
+  lcd.print("Countdown: ");
+  lcd.print(countdown);
+}
+
 
 
 void loop() {
@@ -73,6 +100,8 @@ void loop() {
 
   Detect_Distance();
 
-  delay(50);
+  Countdown_Display();
+
+  delay(100);
 
 }
