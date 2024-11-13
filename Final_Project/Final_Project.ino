@@ -47,34 +47,7 @@ int countdown = 60;
 
 
 // --------------- Functions -------------------- //
-// ---------------------------------------------- Countdown Interrupt
-void Interrupt_On(){
-  TCCR5A = 0;
-  TCCR5B = 0;
-  TCCR5B |= B00000100;
-  TCNT5 = 3036;
-  TIMSK5 |= B00000001;
-}
-void Interrupt_Off(){
-  TIMSK5 &= B11111110;
-}
-// ---------------------------------------------- Countdown Display
-void firstLine(uint8_t offset){
-  uint8_t colOffset = 0;
-  uint8_t rowOffset = 0;
-  lcd.setCursor(colOffset, rowOffset + offset);
-}
-void secondLine(uint8_t offset){
-  uint8_t colOffset = 0;
-  uint8_t rowOffset = 1;
-  lcd.setCursor(colOffset, rowOffset + offset);
-}
-void Countdown_Display(){
-  firstLine(0);
-  if (countdown == 9) lcd.clear();
-  lcd.print("Countdown: ");
-  lcd.print(countdown);
-}
+
 
 
 
@@ -95,13 +68,15 @@ void setup() {
   lcd.backlight();
 
   // ----- Timer ----- //
-  Interrupt_On();
+  Timer_Interrupt_Init();
 }
 
+// ---------------------------------------------- Start Game
 void Start_Game(){
   game_status = GAME_ON;
 }
 
+// ---------------------------------------------- Timer ISR
 ISR(TIMER5_OVF_vect){
   switch (game_status) {
     case GAME_READY:
@@ -116,6 +91,32 @@ ISR(TIMER5_OVF_vect){
     break;
   }
   TCNT5 = 3036;
+}
+
+// ---------------------------------------------- Countdown Interrupt
+void Timer_Interrupt_Init(){
+  TCCR5A = 0;
+  TCCR5B = 0;
+  TCCR5B |= B00000100;
+  TCNT5 = 3036;
+  TIMSK5 |= B00000001;
+}
+// ---------------------------------------------- Countdown Display
+void firstLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 0;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+void secondLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 1;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+void Countdown_Display(){
+  firstLine(0);
+  if (countdown == 9) lcd.clear();
+  lcd.print("Countdown: ");
+  lcd.print(countdown);
 }
 
 // ---------------------------------------------- Head Turn
@@ -148,6 +149,19 @@ int Detect_Distance(){
 
 void loop(){ 
   Countdown_Display();
+
+  switch (game_status) {
+    case GAME_READY:
+      Turn_Head(0);
+    break;
+
+    case GAME_ON:
+    break;
+
+    case GAME_OVER:
+    break;   
+
+  }
   
   delay(100);
 }
