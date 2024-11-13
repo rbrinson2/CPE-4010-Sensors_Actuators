@@ -15,6 +15,10 @@
 #define ECHO_PIN 23
 #define MAX_DISTANCE 200
 
+// ----------------
+#define RED_LIGHT 12
+#define GREEN_LIGHT 13
+
 // --------------- Global Variables ------------- //
 // ------------- Servo
 Servo head_servo;
@@ -97,9 +101,6 @@ void Countdown_Display(){
 void loop() {
 
   Turn_Head(0);
-
-  Detect_Distance();
-
   Countdown_Display();
 
   delay(100);
