@@ -18,14 +18,17 @@
 #define ECHO_PIN 23
 #define MAX_DISTANCE 200
 
-// ----------------
-#define RED_LIGHT 12
-#define GREEN_LIGHT 13
+// ---------------- Red/Green LEDs
+#define RED_LIGHT 10
+#define GREEN_LIGHT 11
+
+// ---------------- Button
+#define BUTTON_PIN 18
 
 // --------------- Global Variables ------------- //
 // ------------- Game Over
-enum GS {GAME_ON, GAME_OVER};
-GS game_status = GAME_ON;
+enum GS {GAME_READY, GAME_ON, GAME_OVER};
+volatile GS game_status = GAME_READY;
 
 // ------------- Servo
 Servo head_servo;
@@ -44,26 +47,73 @@ int countdown = 60;
 
 
 // --------------- Functions -------------------- //
-
-// ---------------------------------------------- Setup 
-void setup() {
-  Serial.begin(9600);
-  head_servo.attach(SERVO_PIN);
-  lcd.begin();
-  lcd.backlight();
-
+// ---------------------------------------------- Countdown Interrupt
+void Interrupt_On(){
   TCCR5A = 0;
   TCCR5B = 0;
   TCCR5B |= B00000100;
   TCNT5 = 3036;
   TIMSK5 |= B00000001;
 }
+void Interrupt_Off(){
+  TIMSK5 &= B11111110;
+}
+// ---------------------------------------------- Countdown Display
+void firstLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 0;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+void secondLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 1;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+void Countdown_Display(){
+  firstLine(0);
+  if (countdown == 9) lcd.clear();
+  lcd.print("Countdown: ");
+  lcd.print(countdown);
+}
+
+
+
+// ---------------------------------------------- Setup 
+void setup() {
+  // ----- Serial ----- //
+  Serial.begin(9600);
+
+  // ----- Button ----- //
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), Start_Game, LOW);
+
+  // ----- Servo Initialize ----- //
+  head_servo.attach(SERVO_PIN);
+
+  // ----- LCD Intialize ----- //
+  lcd.begin();
+  lcd.backlight();
+
+  // ----- Timer ----- //
+  Interrupt_On();
+}
+
+void Start_Game(){
+  game_status = GAME_ON;
+}
 
 ISR(TIMER5_OVF_vect){
-  Serial.println("Hello From Interrupt");
-  if (countdown > 0) {
-    countdown--;
-    game_status = GAME_OVER;
+  switch (game_status) {
+    case GAME_READY:
+      countdown = 60;
+    break;
+    case GAME_ON:
+      if (countdown > 0) countdown--;
+      else game_status = GAME_OVER;
+    break;
+    GAME_OVER:
+      countdown = 0;
+    break;
   }
   TCNT5 = 3036;
 }
@@ -94,32 +144,10 @@ int Detect_Distance(){
   return int(distance);
 }
 
-// ---------------------------------------------- Countdown Display
-void firstLine(uint8_t offset){
-  uint8_t colOffset = 0;
-  uint8_t rowOffset = 0;
-  lcd.setCursor(colOffset, rowOffset + offset);
-}
-void secondLine(uint8_t offset){
-  uint8_t colOffset = 0;
-  uint8_t rowOffset = 1;
-  lcd.setCursor(colOffset, rowOffset + offset);
-}
-
-void Countdown_Display(){
-  firstLine(0);
-  lcd.print("Countdown: ");
-  lcd.print(countdown);
-}
 
 
-
-void loop() {
-  int t = rand() % (3 - 2 + 1) + 2
-
-
+void loop(){ 
   Countdown_Display();
-
+  
   delay(100);
-
 }
