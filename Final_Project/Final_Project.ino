@@ -4,6 +4,9 @@
 #include <LiquidCrystal_I2C.h>
 
 // --------------- Pin Definitions -------------- //
+// ---------------- Head Turn Timer
+#define MAX
+
 // ---------------- Servo
 #define SERVO_PIN 2
 
@@ -20,6 +23,10 @@
 #define GREEN_LIGHT 13
 
 // --------------- Global Variables ------------- //
+// ------------- Game Over
+enum GS {GAME_ON, GAME_OVER};
+GS game_status = GAME_ON;
+
 // ------------- Servo
 Servo head_servo;
 
@@ -45,11 +52,20 @@ void setup() {
   lcd.begin();
   lcd.backlight();
 
-  
+  TCCR5A = 0;
+  TCCR5B = 0;
+  TCCR5B |= B00000100;
+  TCNT5 = 3036;
+  TIMSK5 |= B00000001;
 }
 
-ISR(TIMER5_COMPB_vect){
+ISR(TIMER5_OVF_vect){
   Serial.println("Hello From Interrupt");
+  if (countdown > 0) {
+    countdown--;
+    game_status = GAME_OVER;
+  }
+  TCNT5 = 3036;
 }
 
 // ---------------------------------------------- Head Turn
@@ -99,8 +115,9 @@ void Countdown_Display(){
 
 
 void loop() {
+  int t = rand() % (3 - 2 + 1) + 2
 
-  Turn_Head(0);
+
   Countdown_Display();
 
   delay(100);
