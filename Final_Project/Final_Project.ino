@@ -9,6 +9,8 @@
 
 // ---------------- Servo
 #define SERVO_PIN 2
+#define TURN_AWAY 180
+#define TURN_T0 0
 
 // ---------------- DHT
 #define DHT_PIN   3
@@ -31,10 +33,10 @@ enum GS {GAME_READY, GAME_ON, GAME_OVER};
 volatile GS game_status = GAME_READY;
 
 enum LS {RED_LIGHT, GREEN_LIGHT, NO_LIGHT};
-LS light_status = NO_LIGHT;
+volatile LS light_status = NO_LIGHT;
 
-enum WS {WIN, LOSE, PLAYING};
-WS win_status = PLAYING;
+enum WS {WIN, LOSE, PLAYING, STANDBY};
+volatile WS win_status = STANDBY;
 
 // ------------- Servo
 Servo head_servo;
@@ -45,7 +47,7 @@ int readDHT, temp, humidity;
 
 // ------------- Ultrasonic
 NewPing eyes(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
-float speedOfSound, distance, duration;
+float speedOfSound, distance, duration, previsou_distance;
 
 // ------------- LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -54,29 +56,25 @@ int countdown = 60;
 
 // --------------- Functions -------------------- //
 
-// ---------------------------------------------- Setup 
-void setup() {
-  // ----- Serial ----- //
-  Serial.begin(9600);
-
-  // ----- Button ----- //
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), Start_Game, LOW);
-
-  // ----- Servo Initialize ----- //
-  head_servo.attach(SERVO_PIN);
-
-  // ----- LCD Intialize ----- //
-  lcd.begin();
-  lcd.backlight();
-
-  // ----- Timer ----- //
-  Timer_Interrupt_Init();
-}
-
 // ---------------------------------------------- Start Game
 void Start_Game(){
-  game_status = GAME_ON;
+  switch (game_status) {
+    case GAME_READY: 
+      game_status = GAME_ON;
+      Timer_Interrupt_Init();
+    break;
+
+    case GAME_ON: 
+      game_status = GAME_OVER;
+      win_status = WIN;
+    break;
+
+    case GAME_OVER:
+      game_status = GAME_READY;
+    break;
+  }
+
+  
 }
 
 // ---------------------------------------------- Timer ISR
@@ -87,10 +85,14 @@ ISR(TIMER5_OVF_vect){
     break;
     case GAME_ON:
       if (countdown > 0) countdown--;
-      else game_status = GAME_OVER;
+      else {
+        countdown = 0;
+        game_status = GAME_OVER;
+        win_status = LOSE;
+      }
     break;
     GAME_OVER:
-      countdown = 0;
+      countdown = countdown;
     break;
   }
   TCNT5 = 3036;
@@ -104,6 +106,7 @@ void Timer_Interrupt_Init(){
   TCNT5 = 3036;
   TIMSK5 |= B00000001;
 }
+void Timer_Interrupt_
 // ---------------------------------------------- Countdown Display
 void firstLine(uint8_t offset){
   uint8_t colOffset = 0;
@@ -145,23 +148,67 @@ int Detect_Distance(){
   Serial.print(distance);
   Serial.println("cm");
 
-  return int(distance);
+  return distance;
 }
 
 
+// ---------------------------------------------- Setup 
+void setup() {
+  // ----- Serial ----- //
+  Serial.begin(9600);
 
+  // ----- Button ----- //
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), Start_Game, LOW);
+
+  // ----- Servo Initialize ----- //
+  head_servo.attach(SERVO_PIN);
+
+  // ----- LCD Intialize ----- //
+  lcd.begin();
+  lcd.backlight();
+
+  // ----- Timer ----- //
+  //Timer_Interrupt_Init();
+}
+
+// ---------------------------------------------- Loop
 void loop(){ 
   Countdown_Display();
 
   switch (game_status) {
     case GAME_READY:
-      Turn_Head(0);
+      Turn_Head(TURN_T0);
+      previsou_distance = Detect_Distance();
     break;
 
     case GAME_ON:
+      switch (light_status) {
+        case GREEN_LIGHT:
+          Turn_Head(TURN_AWAY);
+        break;
+
+        case RED_LIGHT:
+          Turn_Head(TURN_T0);
+
+          if ( distance <= (previsou_distance + previsou_distance * 0.1) && distance >= (previsou_distance - previsou_distance * 0.1) ){}
+          else {
+            game_status = GAME_OVER;
+            win_status = LOSE;
+          }
+          previsou_distance = Detect_Distance();
+        break;
+      }
     break;
 
     case GAME_OVER:
+      switch (win_status) {
+        case WIN:
+        break;
+
+        case LOSE:
+        break;
+      }
     break;   
 
   }
