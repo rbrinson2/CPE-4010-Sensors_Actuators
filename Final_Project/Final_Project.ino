@@ -19,16 +19,22 @@
 #define MAX_DISTANCE 200
 
 // ---------------- Red/Green LEDs
-#define RED_LIGHT 10
-#define GREEN_LIGHT 11
+#define RED_LIGHT_PIN 10
+#define GREEN_LIGHT_PIN 11
 
 // ---------------- Button
 #define BUTTON_PIN 18
 
 // --------------- Global Variables ------------- //
-// ------------- Game Over
+// ------------- Status Enums
 enum GS {GAME_READY, GAME_ON, GAME_OVER};
 volatile GS game_status = GAME_READY;
+
+enum LS {RED_LIGHT, GREEN_LIGHT, NO_LIGHT};
+LS light_status = NO_LIGHT;
+
+enum WS {WIN, LOSE, PLAYING};
+WS win_status = PLAYING;
 
 // ------------- Servo
 Servo head_servo;
@@ -47,9 +53,6 @@ int countdown = 60;
 
 
 // --------------- Functions -------------------- //
-
-
-
 
 // ---------------------------------------------- Setup 
 void setup() {
