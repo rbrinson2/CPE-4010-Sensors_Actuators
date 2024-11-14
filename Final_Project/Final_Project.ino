@@ -5,12 +5,16 @@
 
 // --------------- Pin Definitions -------------- //
 // ---------------- Head Turn Timer
-#define MAX
+
 
 // ---------------- Servo
 #define SERVO_PIN 2
 #define TURN_AWAY 180
 #define TURN_T0 0
+
+#define ARM_PIN 10
+#define ARM_WAIT 0
+#define ARM_STRIKE 90
 
 // ---------------- DHT
 #define DHT_PIN   3
@@ -40,6 +44,9 @@ volatile WS win_status = STANDBY;
 
 // ------------- Servo
 Servo head_servo;
+Servo arm_servo;
+enum LF {FIRST, NOT_FIRST};
+LF look_flag = NOT_FIRST;
 
 // ------------- DHT
 dht11 DHT;
@@ -47,7 +54,8 @@ int readDHT, temp, humidity;
 
 // ------------- Ultrasonic
 NewPing eyes(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
-float speedOfSound, distance, duration, previsou_distance;
+float speedOfSound, distance, duration;
+float first_look, movement_grace;
 
 // ------------- LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -65,16 +73,12 @@ void Start_Game(){
     break;
 
     case GAME_ON: 
-      game_status = GAME_OVER;
-      win_status = WIN;
     break;
 
     case GAME_OVER:
       game_status = GAME_READY;
     break;
   }
-
-  
 }
 
 // ---------------------------------------------- Timer ISR
@@ -106,7 +110,7 @@ void Timer_Interrupt_Init(){
   TCNT5 = 3036;
   TIMSK5 |= B00000001;
 }
-void Timer_Interrupt_
+
 // ---------------------------------------------- Countdown Display
 void firstLine(uint8_t offset){
   uint8_t colOffset = 0;
@@ -125,10 +129,6 @@ void Countdown_Display(){
   lcd.print(countdown);
 }
 
-// ---------------------------------------------- Head Turn
-void Turn_Head(int angle){
-  head_servo.write(angle);
-}
 
 // ---------------------------------------------- Detect Distance
 int Detect_Distance(){
@@ -163,6 +163,7 @@ void setup() {
 
   // ----- Servo Initialize ----- //
   head_servo.attach(SERVO_PIN);
+  arm_servo.attach(ARM_PIN);
 
   // ----- LCD Intialize ----- //
   lcd.begin();
@@ -178,25 +179,28 @@ void loop(){
 
   switch (game_status) {
     case GAME_READY:
-      Turn_Head(TURN_T0);
-      previsou_distance = Detect_Distance();
+      head_servo.write(TURN_T0);
     break;
 
     case GAME_ON:
       switch (light_status) {
         case GREEN_LIGHT:
-          Turn_Head(TURN_AWAY);
+          head_servo.write(TURN_AWAY);
         break;
 
         case RED_LIGHT:
-          Turn_Head(TURN_T0);
-
-          if ( distance <= (previsou_distance + previsou_distance * 0.1) && distance >= (previsou_distance - previsou_distance * 0.1) ){}
-          else {
-            game_status = GAME_OVER;
-            win_status = LOSE;
+          head_servo.write(TURN_T0);
+          if (head_servo.read() == TURN_T0 && look_flag == FIRST){
+            first_look = Detect_Distance();
+            movement_grace = first_look * 0.1;
           }
-          previsou_distance = Detect_Distance();
+          else{
+            if (distance >= (first_look - movement_grace) && distance <= (first_look + movement_grace));
+            else {
+              game_status = GAME_OVER;
+              win_status = LOSE;
+            }
+          }
         break;
       }
     break;
@@ -207,6 +211,7 @@ void loop(){
         break;
 
         case LOSE:
+          arm_servo.write(ARM_STRIKE);
         break;
       }
     break;   
