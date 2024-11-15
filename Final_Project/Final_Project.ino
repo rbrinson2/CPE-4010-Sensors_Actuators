@@ -27,14 +27,15 @@
 #define MAX_DISTANCE 200
 
 // ---------------- Red/Green LEDs
-#define RED_LIGHT_PIN 10
-#define GREEN_LIGHT_PIN 11
+#define RED_LED_PIN 9
+#define GREEN_LED_PIN 8
 
 // ---------------- Button
 #define BUTTON_PIN 18
 
 // ---------------- Photo Resistor
-#define PHOTO_PIN 0
+#define PHOTO_PIN 7
+#define PHOTO_THRESH 750
 
 // ---------------- First Look
 #define FIRST true
@@ -71,7 +72,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 int countdown = 60;
 
 // ---------------- Photo Resistor
-int photo_res_val = 0;
+int photo_res = 0;
 
 
 // --------------- Functions -------------------- //
@@ -181,21 +182,34 @@ int Detect_Distance(){
 }
 
 // ---------------------------------------------- Photo Resistor
+void Check_Photo(){
+  if (photo_res > 750) {
+    game_status = GAME_OVER;
+    win_status = WIN;
+  }
+}
 
 // ---------------------------------------------- Green Light Logic
 void Green_Light_logic() {
+  Check_Photo();
+
   for (int i = 0; i < TURN_COMPLETE; i++) Head_Turn(TURN_AWAY);
+  digitalWrite(GREEN_LED_PIN, HIGH);
+  digitalWrite(RED_LED_PIN, LOW);
   first_look = 0;
   look_flag = FIRST;
 }
 
 // ---------------------------------------------- Red Light Logic
 void Red_Light_logic(){
-  
+  Check_Photo();
+
   if (look_flag == FIRST){
     for (int i = 0; i < TURN_COMPLETE; i++) Head_Turn(TURN_T0);
+    digitalWrite(GREEN_LED_PIN, LOW);
+    digitalWrite(RED_LED_PIN, HIGH);
     first_look = Detect_Distance();
-    movement_grace = first_look * 0.25;
+    movement_grace = first_look * 0.3;
     look_flag = !FIRST;
   }
   else{
@@ -207,6 +221,32 @@ void Red_Light_logic(){
     }
   }
 }
+// ---------------------------------------------- Game Read Logic
+void Game_Ready_Logic(){
+  Head_Turn(TURN_AWAY);
+  digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(RED_LED_PIN, LOW);
+  first_look = 0;
+  look_flag = FIRST;
+}
+
+// ---------------------------------------------- Lose Logic
+void Lose_Logic(){
+  digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(RED_LED_PIN, LOW);
+  Arm_Turn(ARM_STRIKE);
+  secondLine(0);
+  lcd.print("You Lose");
+}
+
+// ---------------------------------------------- Win Logic
+void Win_Logic(){
+  digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(RED_LED_PIN, LOW);
+  secondLine(0);
+  lcd.print("You Win!");
+}
+
 // ---------------------------------------------- Setup 
 void setup() {
   // ----- Serial ----- //
@@ -226,20 +266,20 @@ void setup() {
   lcd.begin();
   lcd.backlight();
 
+  // ----- LED Intialize ----- //
+  pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(GREEN_LED_PIN, OUTPUT);
   
 }
 
 // ---------------------------------------------- Loop
 void loop(){ 
-  photo_res_val = analogRead(PHOTO_PIN);
-  Serial.println(photo_res_val);
+  photo_res = analogRead(PHOTO_PIN);
   Countdown_Display();
 
   switch (game_status) {
     case GAME_READY:
-      Head_Turn(TURN_AWAY);
-      first_look = 0;
-      look_flag = FIRST;
+      Game_Ready_Logic();
     break;
 
     case GAME_ON:
@@ -257,12 +297,11 @@ void loop(){
     case GAME_OVER:
       switch (win_status) {
         case WIN:
+          Win_Logic();
         break;
 
         case LOSE:
-          Arm_Turn(ARM_STRIKE);
-          secondLine(0);
-          lcd.print("You Lose");
+          Lose_Logic();
         break;
       }
     break;   
