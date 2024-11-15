@@ -1,4 +1,3 @@
-#include "Servo.h"
 #include "dht11.h"
 #include "NewPing.h"
 #include <LiquidCrystal_I2C.h>
@@ -8,7 +7,10 @@
 
 
 // ---------------- Servo
-#define SERVO_PIN 2
+#define TURN_COMPLETE 30
+#define TURN_DELAY 100
+
+#define HEAD_PIN 2
 #define TURN_AWAY 180
 #define TURN_T0 0
 
@@ -31,22 +33,29 @@
 // ---------------- Button
 #define BUTTON_PIN 18
 
+// ---------------- Photo Resistor
+#define PHOTO_PIN 0
+
+// ---------------- First Look
+#define FIRST true
+
+// ---------------- Light Status
+#define RED_LIGHT false
+#define GREEN_LIGHT true
+
 // --------------- Global Variables ------------- //
-// ------------- Status Enums
+// ------------- Status 
 enum GS {GAME_READY, GAME_ON, GAME_OVER};
 volatile GS game_status = GAME_READY;
 
-enum LS {RED_LIGHT, GREEN_LIGHT, NO_LIGHT};
-volatile LS light_status = NO_LIGHT;
+bool light_status;
 
 enum WS {WIN, LOSE, PLAYING, STANDBY};
 volatile WS win_status = STANDBY;
 
 // ------------- Servo
-Servo head_servo;
-Servo arm_servo;
-enum LF {FIRST, NOT_FIRST};
-LF look_flag = NOT_FIRST;
+int pulsewidth;
+bool look_flag = FIRST;
 
 // ------------- DHT
 dht11 DHT;
@@ -61,15 +70,36 @@ float first_look, movement_grace;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 int countdown = 60;
 
+// ---------------- Photo Resistor
+int photo_res_val = 0;
+
 
 // --------------- Functions -------------------- //
+// ---------------------------------------------- Head Turn
+void Head_Turn(int angle)// define a servo pulse function
+{
+  pulsewidth = (angle * 11) + 500;// convert angle to 500-2480 pulse width
+  digitalWrite(HEAD_PIN, HIGH);  // set the level of servo pin as “high”
+  delayMicroseconds(pulsewidth);  // delay microsecond of pulse width
+  digitalWrite(HEAD_PIN, LOW);   // set the level of servo pin as “low”
+  delay(20-pulsewidth/1000);
+}
+
+// ---------------------------------------------- Arm Turn
+void Arm_Turn(int angle)// define a servo pulse function
+{
+  pulsewidth = (angle * 11) + 500;// convert angle to 500-2480 pulse width
+  digitalWrite(ARM_PIN, HIGH);  // set the level of servo pin as “high”
+  delayMicroseconds(pulsewidth);  // delay microsecond of pulse width
+  digitalWrite(ARM_PIN, LOW);   // set the level of servo pin as “low”
+  delay(20-pulsewidth/1000);
+}
 
 // ---------------------------------------------- Start Game
 void Start_Game(){
   switch (game_status) {
     case GAME_READY: 
       game_status = GAME_ON;
-      Timer_Interrupt_Init();
     break;
 
     case GAME_ON: 
@@ -88,7 +118,10 @@ ISR(TIMER5_OVF_vect){
       countdown = 60;
     break;
     case GAME_ON:
-      if (countdown > 0) countdown--;
+      if (countdown > 0) {
+        countdown--;
+        if (countdown % 4 == 0) light_status = !light_status;
+      }
       else {
         countdown = 0;
         game_status = GAME_OVER;
@@ -144,63 +177,79 @@ int Detect_Distance(){
   distance = (speedOfSound * duration)/2;
   distance = distance * 100; // meters to centimeters
 
-  Serial.print("Distance: ");
-  Serial.print(distance);
-  Serial.println("cm");
-
   return distance;
 }
 
+// ---------------------------------------------- Photo Resistor
 
+// ---------------------------------------------- Green Light Logic
+void Green_Light_logic() {
+  for (int i = 0; i < TURN_COMPLETE; i++) Head_Turn(TURN_AWAY);
+  first_look = 0;
+  look_flag = FIRST;
+}
+
+// ---------------------------------------------- Red Light Logic
+void Red_Light_logic(){
+  
+  if (look_flag == FIRST){
+    for (int i = 0; i < TURN_COMPLETE; i++) Head_Turn(TURN_T0);
+    first_look = Detect_Distance();
+    movement_grace = first_look * 0.25;
+    look_flag = !FIRST;
+  }
+  else{
+    Detect_Distance();
+    if (distance >= (first_look - movement_grace) && distance <= (first_look + movement_grace));
+    else {
+      game_status = GAME_OVER;
+      win_status = LOSE;
+    }
+  }
+}
 // ---------------------------------------------- Setup 
 void setup() {
   // ----- Serial ----- //
-  Serial.begin(9600);
+  Serial.begin(115200);
+
+  // ----- Timer ----- //
+  Timer_Interrupt_Init();
 
   // ----- Button ----- //
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), Start_Game, LOW);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), Start_Game, RISING);
 
   // ----- Servo Initialize ----- //
-  head_servo.attach(SERVO_PIN);
-  arm_servo.attach(ARM_PIN);
+  pinMode(HEAD_PIN, OUTPUT);
 
   // ----- LCD Intialize ----- //
   lcd.begin();
   lcd.backlight();
 
-  // ----- Timer ----- //
-  //Timer_Interrupt_Init();
+  
 }
 
 // ---------------------------------------------- Loop
 void loop(){ 
+  photo_res_val = analogRead(PHOTO_PIN);
+  Serial.println(photo_res_val);
   Countdown_Display();
 
   switch (game_status) {
     case GAME_READY:
-      head_servo.write(TURN_T0);
+      Head_Turn(TURN_AWAY);
+      first_look = 0;
+      look_flag = FIRST;
     break;
 
     case GAME_ON:
       switch (light_status) {
         case GREEN_LIGHT:
-          head_servo.write(TURN_AWAY);
+          Green_Light_logic();
         break;
 
         case RED_LIGHT:
-          head_servo.write(TURN_T0);
-          if (head_servo.read() == TURN_T0 && look_flag == FIRST){
-            first_look = Detect_Distance();
-            movement_grace = first_look * 0.1;
-          }
-          else{
-            if (distance >= (first_look - movement_grace) && distance <= (first_look + movement_grace));
-            else {
-              game_status = GAME_OVER;
-              win_status = LOSE;
-            }
-          }
+          Red_Light_logic();
         break;
       }
     break;
@@ -211,12 +260,15 @@ void loop(){
         break;
 
         case LOSE:
-          arm_servo.write(ARM_STRIKE);
+          Arm_Turn(ARM_STRIKE);
+          secondLine(0);
+          lcd.print("You Lose");
         break;
       }
     break;   
 
   }
-  
+
   delay(100);
+  
 }
