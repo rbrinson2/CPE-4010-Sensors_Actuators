@@ -12,7 +12,7 @@
 
 #define HEAD_PIN 2
 #define TURN_AWAY 180
-#define TURN_T0 0
+#define TURN_T0 10
 
 #define ARM_PIN 10
 #define ARM_WAIT 0
@@ -107,9 +107,27 @@ void Start_Game(){
     break;
 
     case GAME_OVER:
+      delay(250);
       game_status = GAME_READY;
     break;
   }
+}
+// ---------------------------------------------- Countdown Display
+void firstLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 0;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+void secondLine(uint8_t offset){
+  uint8_t colOffset = 0;
+  uint8_t rowOffset = 1;
+  lcd.setCursor(colOffset, rowOffset + offset);
+}
+void Countdown_Display(){
+  firstLine(0);
+  if (countdown == 9) lcd.clear();
+  lcd.print("Countdown: ");
+  lcd.print(countdown);
 }
 
 // ---------------------------------------------- Timer ISR
@@ -145,25 +163,6 @@ void Timer_Interrupt_Init(){
   TIMSK5 |= B00000001;
 }
 
-// ---------------------------------------------- Countdown Display
-void firstLine(uint8_t offset){
-  uint8_t colOffset = 0;
-  uint8_t rowOffset = 0;
-  lcd.setCursor(colOffset, rowOffset + offset);
-}
-void secondLine(uint8_t offset){
-  uint8_t colOffset = 0;
-  uint8_t rowOffset = 1;
-  lcd.setCursor(colOffset, rowOffset + offset);
-}
-void Countdown_Display(){
-  firstLine(0);
-  if (countdown == 9) lcd.clear();
-  lcd.print("Countdown: ");
-  lcd.print(countdown);
-}
-
-
 // ---------------------------------------------- Detect Distance
 int Detect_Distance(){
 
@@ -191,6 +190,7 @@ void Check_Photo(){
 
 // ---------------------------------------------- Green Light Logic
 void Green_Light_logic() {
+  // Countdown_Display();
   Check_Photo();
 
   for (int i = 0; i < TURN_COMPLETE; i++) Head_Turn(TURN_AWAY);
@@ -202,6 +202,7 @@ void Green_Light_logic() {
 
 // ---------------------------------------------- Red Light Logic
 void Red_Light_logic(){
+  // Countdown_Display();
   Check_Photo();
 
   if (look_flag == FIRST){
@@ -228,13 +229,16 @@ void Game_Ready_Logic(){
   digitalWrite(RED_LED_PIN, LOW);
   first_look = 0;
   look_flag = FIRST;
+
+  // Countdown_Display();
 }
 
 // ---------------------------------------------- Lose Logic
 void Lose_Logic(){
   digitalWrite(GREEN_LED_PIN, LOW);
   digitalWrite(RED_LED_PIN, LOW);
-  Arm_Turn(ARM_STRIKE);
+  for (int i = 0; i < TURN_COMPLETE; i++) Arm_Turn(ARM_STRIKE);
+
   secondLine(0);
   lcd.print("You Lose");
 }
@@ -243,6 +247,7 @@ void Lose_Logic(){
 void Win_Logic(){
   digitalWrite(GREEN_LED_PIN, LOW);
   digitalWrite(RED_LED_PIN, LOW);
+
   secondLine(0);
   lcd.print("You Win!");
 }
@@ -250,7 +255,7 @@ void Win_Logic(){
 // ---------------------------------------------- Setup 
 void setup() {
   // ----- Serial ----- //
-  Serial.begin(115200);
+  // Serial.begin(115200);
 
   // ----- Timer ----- //
   Timer_Interrupt_Init();
@@ -269,13 +274,15 @@ void setup() {
   // ----- LED Intialize ----- //
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(GREEN_LED_PIN, OUTPUT);
+
+  // Countdown_Display();
   
 }
 
 // ---------------------------------------------- Loop
 void loop(){ 
-  photo_res = analogRead(PHOTO_PIN);
   Countdown_Display();
+  photo_res = analogRead(PHOTO_PIN);
 
   switch (game_status) {
     case GAME_READY:
@@ -307,7 +314,5 @@ void loop(){
     break;   
 
   }
-
-  delay(100);
   
 }
