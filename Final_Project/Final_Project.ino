@@ -35,7 +35,7 @@
 
 // ---------------- Photo Resistor
 #define PHOTO_PIN 7
-#define PHOTO_THRESH 750
+#define PHOTO_THRESH 760
 
 // ---------------- First Look
 #define FIRST true
@@ -255,7 +255,7 @@ void Win_Logic(){
 // ---------------------------------------------- Setup 
 void setup() {
   // ----- Serial ----- //
-  // Serial.begin(115200);
+  Serial.begin(115200);
 
   // ----- Timer ----- //
   Timer_Interrupt_Init();
@@ -283,6 +283,7 @@ void setup() {
 void loop(){ 
   Countdown_Display();
   photo_res = analogRead(PHOTO_PIN);
+  if (photo_res > PHOTO_THRESH) Serial.println(photo_res);
 
   switch (game_status) {
     case GAME_READY:
