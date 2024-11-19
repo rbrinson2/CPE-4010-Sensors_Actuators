@@ -358,12 +358,12 @@ void loop(){
     break;
 
     case GAME_ON:
+      Check_Photo();
+
       if (update_countdown == true){
         Countdown_Display();
         update_countdown = false;
       }
-
-      Check_Photo();
 
       switch (light_status) {
         case GREEN_LIGHT:
@@ -374,6 +374,8 @@ void loop(){
           Red_Light_logic();
         break;
       }
+
+      Check_Photo();
     break;
 
     case GAME_OVER:
