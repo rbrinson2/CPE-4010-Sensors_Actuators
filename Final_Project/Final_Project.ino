@@ -15,7 +15,7 @@
 #define TURN_T0 10
 
 #define ARM_PIN 10
-#define ARM_WAIT 90
+#define ARM_WAIT 85
 #define ARM_SWING 0
 
 // ---------------- DHT
@@ -24,7 +24,7 @@
 // ---------------- Ultrasonic 
 #define TRIGGER_PIN 22
 #define ECHO_PIN 23
-#define MAX_DISTANCE 200
+#define MAX_DISTANCE 40
 
 // ---------------- Red/Green LEDs
 #define RED_LED_PIN 9
@@ -251,7 +251,7 @@ void Red_Light_logic(){
     }
 
     first_look = Detect_Distance();
-    movement_grace = first_look * 0.2;
+    movement_grace = first_look * 0.1;
     look_flag = !FIRST;
   }
   else{
