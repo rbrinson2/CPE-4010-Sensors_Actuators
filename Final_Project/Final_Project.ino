@@ -35,7 +35,7 @@
 
 // ---------------- Photo Resistor
 #define PHOTO_PIN 7
-#define PHOTO_THRESH 850
+#define PHOTO_THRESH 990
 
 // ---------------- First Look
 #define FIRST true
@@ -346,6 +346,7 @@ void loop(){
   
 
   photo_res = analogRead(PHOTO_PIN);
+  Serial.println(photo_res);
   
 
   switch (game_status) {
